@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Controle</string>
+    <string name="accessibility_service_label">Controle - Pausa Consciente &amp; Foco</string>
+    <string name="accessibility_service_description">Permite ao aplicativo Controle interceptar a abertura de aplicativos distrativos, exibir o exercício de respiração consciente e aplicar os limites de tela estipulados.</string>
+</resources>
