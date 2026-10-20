@@ -44,6 +44,7 @@
             android:launchMode="singleInstance"
             android:excludeFromRecents="true"
             android:noHistory="true"
+            android:taskAffinity=""
             android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen" />
 
         <!-- Serviço de Acessibilidade: Detecção de Janela e Feeds Curtos -->
@@ -69,6 +70,17 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Controle mindful digital wellbeing screen time protector" />
         </service>
+
+        <!-- Receptor de Boot: Reinicia o serviço ao ligar o dispositivo -->
+        <receiver
+            android:name=".service.ControleBootReceiver"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

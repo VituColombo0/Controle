@@ -28,12 +28,15 @@ import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.QueryStats
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.controle.app.ControleApp
 import com.controle.app.service.UsageTracker
 import com.controle.app.ui.theme.CoralWarning
 import com.controle.app.ui.theme.MintDark
@@ -60,26 +64,29 @@ import com.controle.app.ui.theme.SurfaceElevated
 import com.controle.app.ui.theme.TextGray
 import com.controle.app.ui.theme.TextMuted
 import com.controle.app.ui.theme.TextWhite
+import kotlinx.coroutines.delay
 
 @Composable
 fun PermissionsScreen() {
     val context = LocalContext.current
+    val prefs = ControleApp.instance.preferences
 
     var hasAccessibility by remember { mutableStateOf(false) }
     var hasOverlay by remember { mutableStateOf(false) }
     var hasUsageStats by remember { mutableStateOf(false) }
     var isBatteryIgnoring by remember { mutableStateOf(false) }
+    var vibrationEnabled by remember { mutableStateOf(prefs.isVibrationEnabled()) }
 
-    fun checkPermissions() {
-        hasAccessibility = isAccessibilityServiceEnabled(context)
-        hasOverlay = Settings.canDrawOverlays(context)
-        hasUsageStats = UsageTracker.hasUsagePermission(context)
-        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
-        isBatteryIgnoring = powerManager?.isIgnoringBatteryOptimizations(context.packageName) ?: false
-    }
-
+    // Auto-refresh a cada 2 segundos para detectar mudanças de permissão
     LaunchedEffect(Unit) {
-        checkPermissions()
+        while (true) {
+            hasAccessibility = isAccessibilityServiceEnabled(context)
+            hasOverlay = Settings.canDrawOverlays(context)
+            hasUsageStats = UsageTracker.hasUsagePermission(context)
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+            isBatteryIgnoring = powerManager?.isIgnoringBatteryOptimizations(context.packageName) ?: false
+            delay(2000)
+        }
     }
 
     Column(
@@ -90,18 +97,29 @@ fun PermissionsScreen() {
             .padding(horizontal = 20.dp, vertical = 24.dp)
     ) {
         Text(
-            text = "Permissões do Sistema",
+            text = "Configurações",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = TextWhite
         )
         Text(
-            text = "O Controle precisa dessas permissões do Android para monitorar e pausar os apps.",
+            text = "Permissões do sistema e ajustes do Controle",
             fontSize = 13.sp,
             color = TextGray
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Seção: Permissões
+        Text(
+            text = "PERMISSÕES",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = MintNeon,
+            letterSpacing = 1.sp
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         // 1. Acessibilidade
         PermissionCheckCard(
@@ -116,7 +134,7 @@ fun PermissionsScreen() {
             }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // 2. Sobrepor a outros apps
         PermissionCheckCard(
@@ -134,7 +152,7 @@ fun PermissionsScreen() {
             }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // 3. Acesso aos dados de uso
         PermissionCheckCard(
@@ -149,7 +167,7 @@ fun PermissionsScreen() {
             }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // 4. Otimização de bateria
         PermissionCheckCard(
@@ -166,6 +184,126 @@ fun PermissionsScreen() {
                 context.startActivity(intent)
             }
         )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Seção: Ajustes
+        Text(
+            text = "AJUSTES",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = MintNeon,
+            letterSpacing = 1.sp
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Vibração
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, SurfaceBorder, RoundedCornerShape(18.dp))
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(if (vibrationEnabled) MintDark.copy(alpha = 0.5f) else SurfaceElevated),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Vibration,
+                            contentDescription = null,
+                            tint = if (vibrationEnabled) MintNeon else TextGray,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Vibração Tátil",
+                            color = TextWhite,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp
+                        )
+                        Text(
+                            text = "Feedback háptico durante a respiração",
+                            color = TextGray,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+                Switch(
+                    checked = vibrationEnabled,
+                    onCheckedChange = {
+                        vibrationEnabled = it
+                        prefs.setVibrationEnabled(it)
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = PureBlack,
+                        checkedTrackColor = MintNeon,
+                        uncheckedThumbColor = TextMuted,
+                        uncheckedTrackColor = SurfaceElevated
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Seção: Sobre
+        Text(
+            text = "SOBRE",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = MintNeon,
+            letterSpacing = 1.sp
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, SurfaceBorder, RoundedCornerShape(18.dp))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Controle v1.0.0",
+                    color = TextWhite,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Tempo de tela consciente. Inspirado no Ascent.",
+                    color = TextGray,
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Pausa consciente • Bloqueio de Reels/Shorts • " +
+                            "Intenções reflexivas • Sessões de Foco • " +
+                            "Agendamento por horário • Bloqueio de Websites • " +
+                            "Lembretes de tempo • Modo Estrito",
+                    color = TextMuted,
+                    fontSize = 11.sp,
+                    lineHeight = 16.sp
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(30.dp))
     }

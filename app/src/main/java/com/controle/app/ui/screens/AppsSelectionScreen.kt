@@ -22,6 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -48,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.controle.app.ControleApp
 import com.controle.app.data.AppRule
+import com.controle.app.ui.theme.AmberAlert
 import com.controle.app.ui.theme.MintDark
 import com.controle.app.ui.theme.MintNeon
 import com.controle.app.ui.theme.PureBlack
@@ -332,6 +335,138 @@ fun AppConfigCard(
                                 checkedTrackColor = SkyBlue
                             )
                         )
+                    }
+                }
+
+                // Lembrete de Tempo (Reminder)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = null,
+                        tint = if (rule.reminderMinutes > 0) AmberAlert else TextMuted,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Lembrete após:",
+                        color = TextGray,
+                        fontSize = 12.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    listOf(0 to "Off", 5 to "5m", 10 to "10m", 15 to "15m", 30 to "30m").forEach { (min, label) ->
+                        val isSelected = rule.reminderMinutes == min
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSelected) MintDark.copy(alpha = 0.5f) else SurfaceElevated)
+                                .border(1.dp, if (isSelected) AmberAlert.copy(alpha = 0.7f) else SurfaceBorder, RoundedCornerShape(10.dp))
+                                .clickable { onUpdateRule(rule.copy(reminderMinutes = min)) }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (isSelected) AmberAlert else TextGray,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+
+                // Agendamento por Horário (Schedule)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = if (rule.scheduleEnabled) SkyBlue else TextMuted,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column {
+                            Text(
+                                text = "Bloqueio por horário",
+                                color = TextGray,
+                                fontSize = 12.sp
+                            )
+                            if (rule.scheduleEnabled) {
+                                Text(
+                                    text = "${String.format("%02d", rule.scheduleStartHour)}:${String.format("%02d", rule.scheduleStartMinute)} " +
+                                            "→ ${String.format("%02d", rule.scheduleEndHour)}:${String.format("%02d", rule.scheduleEndMinute)}",
+                                    color = SkyBlue,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                    Switch(
+                        checked = rule.scheduleEnabled,
+                        onCheckedChange = { onUpdateRule(rule.copy(scheduleEnabled = it)) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = PureBlack,
+                            checkedTrackColor = SkyBlue
+                        )
+                    )
+                }
+
+                // Seletor de horário quando schedule habilitado
+                if (rule.scheduleEnabled) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Presets de horário
+                        listOf(
+                            Triple(22, 0, 7) to "22h-07h",
+                            Triple(23, 0, 6) to "23h-06h",
+                            Triple(0, 0, 8) to "00h-08h",
+                            Triple(8, 0, 17) to "08h-17h"
+                        ).forEach { (times, label) ->
+                            val (h1, m1, h2) = times
+                            val isSelected = rule.scheduleStartHour == h1 &&
+                                    rule.scheduleStartMinute == m1 &&
+                                    rule.scheduleEndHour == h2
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSelected) MintDark.copy(alpha = 0.5f) else SurfaceElevated)
+                                    .border(1.dp, if (isSelected) SkyBlue else SurfaceBorder, RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        onUpdateRule(
+                                            rule.copy(
+                                                scheduleStartHour = h1,
+                                                scheduleStartMinute = m1,
+                                                scheduleEndHour = h2,
+                                                scheduleEndMinute = 0
+                                            )
+                                        )
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = label,
+                                    color = if (isSelected) SkyBlue else TextGray,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        }
                     }
                 }
 

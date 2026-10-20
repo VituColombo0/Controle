@@ -29,6 +29,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.VideocamOff
@@ -69,6 +71,7 @@ import com.controle.app.ui.theme.SurfaceElevated
 import com.controle.app.ui.theme.TextGray
 import com.controle.app.ui.theme.TextMuted
 import com.controle.app.ui.theme.TextWhite
+import com.controle.app.ui.theme.AmberAlert
 
 class ControlePauseActivity : ComponentActivity() {
 
@@ -81,6 +84,8 @@ class ControlePauseActivity : ComponentActivity() {
         const val EXTRA_IS_SHORTS_BLOCKED = "extra_is_shorts_blocked"
         const val EXTRA_IS_STRICT = "extra_is_strict"
         const val EXTRA_STRICT_PHRASE = "extra_strict_phrase"
+        const val EXTRA_IS_SCHEDULE_BLOCKED = "extra_is_schedule_blocked"
+        const val EXTRA_IS_REMINDER = "extra_is_reminder"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,7 +99,11 @@ class ControlePauseActivity : ComponentActivity() {
         val isShortsBlocked = intent.getBooleanExtra(EXTRA_IS_SHORTS_BLOCKED, false)
         val isStrict = intent.getBooleanExtra(EXTRA_IS_STRICT, false)
         val strictPhrase = intent.getStringExtra(EXTRA_STRICT_PHRASE) ?: "Eu escolho conscientemente abrir este app"
+        val isScheduleBlocked = intent.getBooleanExtra(EXTRA_IS_SCHEDULE_BLOCKED, false)
+        val isReminder = intent.getBooleanExtra(EXTRA_IS_REMINDER, false)
 
+        // Bloqueia o botão de voltar em estados de bloqueio total
+        val isHardBlock = isLimitReached || isGlobalFocus || isShortsBlocked || isScheduleBlocked
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 goHome()
@@ -111,6 +120,8 @@ class ControlePauseActivity : ComponentActivity() {
                     isShortsBlocked = isShortsBlocked,
                     isStrict = isStrict,
                     strictPhrase = strictPhrase,
+                    isScheduleBlocked = isScheduleBlocked,
+                    isReminder = isReminder,
                     onGoHome = {
                         ControleApp.instance.preferences.recordPreventedOpen()
                         goHome()
@@ -148,6 +159,8 @@ fun ControlePauseScreen(
     isShortsBlocked: Boolean,
     isStrict: Boolean,
     strictPhrase: String,
+    isScheduleBlocked: Boolean,
+    isReminder: Boolean,
     onGoHome: () -> Unit,
     onContinue: (Int) -> Unit
 ) {
@@ -157,6 +170,9 @@ fun ControlePauseScreen(
     var typedPhrase by remember { mutableStateOf("") }
     var phraseError by remember { mutableStateOf(false) }
     var pendingMinutes by remember { mutableStateOf(5) }
+
+    // Determina se este é um bloqueio rígido (sem opção de continuar)
+    val isHardBlock = isLimitReached || isGlobalFocus || isShortsBlocked || isScheduleBlocked
 
     val intentions = listOf(
         "💼 Trabalho / Estudo",
@@ -193,10 +209,16 @@ fun ControlePauseScreen(
                         isLimitReached -> Icons.Default.Lock
                         isGlobalFocus -> Icons.Default.HourglassTop
                         isShortsBlocked -> Icons.Default.VideocamOff
+                        isScheduleBlocked -> Icons.Default.Schedule
+                        isReminder -> Icons.Default.Notifications
                         else -> Icons.Default.SelfImprovement
                     },
                     contentDescription = null,
-                    tint = if (isLimitReached || isShortsBlocked) CoralWarning else MintNeon,
+                    tint = when {
+                        isHardBlock -> CoralWarning
+                        isReminder -> AmberAlert
+                        else -> MintNeon
+                    },
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -205,6 +227,8 @@ fun ControlePauseScreen(
                         isLimitReached -> "Limite Diário Esgotado"
                         isGlobalFocus -> "Sessão de Foco Ativa"
                         isShortsBlocked -> "Reels & Shorts Bloqueado"
+                        isScheduleBlocked -> "Bloqueio por Horário Ativo"
+                        isReminder -> "Lembrete de Tempo"
                         else -> "Pausa Consciente"
                     },
                     color = TextWhite,
@@ -216,7 +240,7 @@ fun ControlePauseScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "Você está abrindo o",
+                text = if (isReminder) "Você está dentro do" else "Você está abrindo o",
                 color = TextGray,
                 fontSize = 14.sp
             )
@@ -231,14 +255,14 @@ fun ControlePauseScreen(
 
             // Círculo de Respiração Guiada
             BreathingCircle(
-                durationSeconds = pauseSeconds,
+                durationSeconds = if (isReminder) 5 else pauseSeconds,
                 onFinished = { isBreathDone = true }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Intenções reflexivas (Marca registrada do Ascent)
-            if (!isLimitReached && !isGlobalFocus && !isShortsBlocked) {
+            // Intenções reflexivas ou mensagens de bloqueio
+            if (!isHardBlock && !isReminder) {
                 Text(
                     text = "Qual é o seu propósito agora?",
                     color = TextGray,
@@ -276,11 +300,20 @@ fun ControlePauseScreen(
                         }
                     }
                 }
+            } else if (isReminder) {
+                Text(
+                    text = "Você já está usando este app por bastante tempo.\nQue tal fazer uma pausa?",
+                    color = AmberAlert,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
             } else {
                 Text(
                     text = when {
                         isLimitReached -> "Você atingiu o limite de tempo estipulado para hoje. Desconecte-se."
                         isGlobalFocus -> "Você está no meio de uma sessão de foco. Proteja sua atenção."
+                        isScheduleBlocked -> "Este app está bloqueado neste horário. Respeite seu descanso."
                         else -> "Feed infinito desabilitado para evitar perda de tempo. Use apenas chats e mensagens."
                     },
                     color = CoralWarning,
@@ -307,7 +340,7 @@ fun ControlePauseScreen(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Mudei de ideia (Fechar app)",
+                    text = if (isHardBlock) "Voltar à Tela Inicial" else "Mudei de ideia (Fechar app)",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -315,8 +348,8 @@ fun ControlePauseScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Botão Secundário: Liberar temporariamente por 5m ou 15m
-            if (!isLimitReached && !isGlobalFocus && !isShortsBlocked) {
+            // Botão Secundário: Liberar temporariamente
+            if (!isHardBlock) {
                 AnimatedVisibility(
                     visible = isBreathDone,
                     enter = fadeIn() + slideInVertically { it / 2 }

@@ -8,7 +8,13 @@ data class AppRule(
     val dailyLimitMinutes: Int = 0, // 0 = sem limite
     val blockShortsReels: Boolean = false,
     val isStrict: Boolean = false,
-    val strictPhrase: String = "Eu escolho conscientemente abrir este app"
+    val strictPhrase: String = "Eu escolho conscientemente abrir este app",
+    val reminderMinutes: Int = 0, // 0 = sem lembrete; >0 = Popup após X min dentro do app
+    val scheduleEnabled: Boolean = false,
+    val scheduleStartHour: Int = 22,
+    val scheduleStartMinute: Int = 0,
+    val scheduleEndHour: Int = 7,
+    val scheduleEndMinute: Int = 0
 )
 
 data class ControleStats(
@@ -16,7 +22,8 @@ data class ControleStats(
     val breathsCompleted: Int = 0,
     val opensPrevented: Int = 0,
     val streakDays: Int = 1,
-    val lastActiveDate: String = ""
+    val lastActiveDate: String = "",
+    val statsDate: String = "" // Data para reset diário
 )
 
 data class FocusSession(
@@ -25,4 +32,9 @@ data class FocusSession(
     val startTimeMillis: Long = 0L,
     val endTimeMillis: Long = 0L,
     val sessionName: String = "Sessão de Foco"
+)
+
+data class WebsiteBlock(
+    val url: String,
+    val isEnabled: Boolean = true
 )

@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -23,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -33,7 +35,9 @@ import androidx.compose.ui.unit.sp
 import com.controle.app.ui.screens.AppsSelectionScreen
 import com.controle.app.ui.screens.DashboardScreen
 import com.controle.app.ui.screens.FocusScreen
+import com.controle.app.ui.screens.OnboardingScreen
 import com.controle.app.ui.screens.PermissionsScreen
+import com.controle.app.ui.screens.WebsiteBlockScreen
 import com.controle.app.ui.theme.ControleTheme
 import com.controle.app.ui.theme.MintNeon
 import com.controle.app.ui.theme.PureBlack
@@ -46,7 +50,8 @@ enum class ControleNavTab(val title: String, val icon: ImageVector) {
     DASHBOARD("Início", Icons.Default.Dashboard),
     APPS("Apps", Icons.Default.Apps),
     FOCUS("Foco", Icons.Default.HourglassTop),
-    PERMISSIONS("Permissões", Icons.Default.Shield)
+    WEBSITES("Sites", Icons.Default.Language),
+    PERMISSIONS("Config", Icons.Default.Shield)
 }
 
 class MainActivity : ComponentActivity() {
@@ -56,9 +61,23 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             ControleTheme {
-                MainAppNavigation()
+                MainAppEntry()
             }
         }
+    }
+}
+
+@Composable
+fun MainAppEntry() {
+    val prefs = ControleApp.instance.preferences
+    var showOnboarding by remember { mutableStateOf(!prefs.isOnboardingDone()) }
+
+    if (showOnboarding) {
+        OnboardingScreen(onFinished = {
+            showOnboarding = false
+        })
+    } else {
+        MainAppNavigation()
     }
 }
 
@@ -112,11 +131,12 @@ fun MainAppNavigation() {
                 0 -> DashboardScreen(
                     onNavigateToApps = { selectedIndex = 1 },
                     onNavigateToFocus = { selectedIndex = 2 },
-                    onNavigateToPermissions = { selectedIndex = 3 }
+                    onNavigateToPermissions = { selectedIndex = 4 }
                 )
                 1 -> AppsSelectionScreen()
                 2 -> FocusScreen()
-                3 -> PermissionsScreen()
+                3 -> WebsiteBlockScreen()
+                4 -> PermissionsScreen()
             }
         }
     }

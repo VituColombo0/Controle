@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -52,6 +53,7 @@ import com.controle.app.ControleApp
 import com.controle.app.data.ControleStats
 import com.controle.app.data.FocusSession
 import com.controle.app.service.UsageTracker
+import com.controle.app.ui.theme.AmberAlert
 import com.controle.app.ui.theme.CoralWarning
 import com.controle.app.ui.theme.MintGlow
 import com.controle.app.ui.theme.MintNeon
@@ -63,6 +65,7 @@ import com.controle.app.ui.theme.SurfaceCard
 import com.controle.app.ui.theme.SurfaceElevated
 import com.controle.app.ui.theme.TextGray
 import com.controle.app.ui.theme.TextWhite
+import kotlinx.coroutines.delay
 
 @Composable
 fun DashboardScreen(
@@ -77,11 +80,17 @@ fun DashboardScreen(
     var stats by remember { mutableStateOf(prefs.getStats()) }
     var totalScreenTimeMillis by remember { mutableLongStateOf(0L) }
     var focusSession by remember { mutableStateOf(prefs.getFocusSession()) }
+    var rulesCount by remember { mutableStateOf(0) }
 
+    // Refresh periódico a cada 10 segundos
     LaunchedEffect(Unit) {
-        stats = prefs.getStats()
-        totalScreenTimeMillis = UsageTracker.getTotalScreenTimeTodayMillis(context)
-        focusSession = prefs.getFocusSession()
+        while (true) {
+            stats = prefs.getStats()
+            totalScreenTimeMillis = UsageTracker.getTotalScreenTimeTodayMillis(context)
+            focusSession = prefs.getFocusSession()
+            rulesCount = prefs.getAppRules().count { it.value.pauseEnabled }
+            delay(10_000)
+        }
     }
 
     Column(
@@ -201,7 +210,7 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3 Cards de Métricas Principais
+        // 4 Cards de Métricas Principais
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -227,6 +236,37 @@ fun DashboardScreen(
                 iconTint = TextGray,
                 modifier = Modifier.weight(1f)
             )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Status de proteção
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, SurfaceBorder, RoundedCornerShape(16.dp))
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.TrendingUp,
+                    contentDescription = null,
+                    tint = MintNeon,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "$rulesCount apps monitorados • ${prefs.getWebsiteBlocks().size} sites bloqueados",
+                    color = TextGray,
+                    fontSize = 12.sp
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(22.dp))
@@ -359,7 +399,7 @@ fun DashboardScreen(
                     .height(48.dp)
                     .border(1.dp, SurfaceBorder, RoundedCornerShape(14.dp))
             ) {
-                Text("Permissões", color = TextWhite, fontSize = 13.sp)
+                Text("Configurações", color = TextWhite, fontSize = 13.sp)
             }
         }
 
